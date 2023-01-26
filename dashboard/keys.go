@@ -1,4 +1,4 @@
-package bubblesx
+package dashboard
 
 import (
 	"github.com/charmbracelet/bubbles/key"
@@ -12,6 +12,7 @@ type KeyMap struct {
 	// Left  key.Binding
 	// Right key.Binding
 	Select key.Binding
+	Append key.Binding
 	Help   key.Binding
 	Quit   key.Binding
 }
@@ -26,9 +27,9 @@ func (k KeyMap) ShortHelp() []key.Binding {
 // key.Map interface.
 func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		//{k.Up, k.Down, k.Left, k.Right}, // first column
-		{k.Up, k.Down},   // first column
-		{k.Help, k.Quit}, // second column
+		{k.Up, k.Down},       // first column
+		{k.Select, k.Append}, // second column
+		{k.Help, k.Quit},
 	}
 }
 
@@ -52,6 +53,10 @@ var DefaultKeyMap = KeyMap{
 	Select: key.NewBinding(
 		key.WithKeys(" ", "enter"),
 		key.WithHelp("enter", "select a item"),
+	),
+	Append: key.NewBinding(
+		key.WithKeys("a"),
+		key.WithHelp("a", "append a new entry"),
 	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),
@@ -83,6 +88,10 @@ var ColemakKeyMap = KeyMap{
 	Select: key.NewBinding(
 		key.WithKeys(" ", "enter"),
 		key.WithHelp("enter", "select a item"),
+	),
+	Append: key.NewBinding(
+		key.WithKeys("a"),
+		key.WithHelp("a", "append a new entry"),
 	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),

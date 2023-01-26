@@ -8,12 +8,12 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"rey.com/charm/potatoes/bubblesx"
+	"rey.com/charm/potatoes/dashboard"
 )
 
-type model struct {
+type ModelDashboard struct {
 	potatoes Potatoes
-	keymap   bubblesx.KeyMap
+	keymap   dashboard.KeyMap
 	help     help.Model
 }
 
@@ -23,26 +23,37 @@ type Potatoes struct {
 	Selected map[int]struct{}
 }
 
-func initModel() *model {
-	return &model{
+func initModelDashboard() tea.Model {
+	return &ModelDashboard{
 		potatoes: Potatoes{
 			Choices:  []string{"Buy carrots", "Buy chocolates", "Buy milk"},
 			Selected: make(map[int]struct{}),
 		},
-		keymap: bubblesx.ColemakKeyMap,
+		keymap: dashboard.ColemakKeyMap,
+		help:   help.New(),
+	}
+}
+
+func AppendModelDashboard(entry string) tea.Model {
+	return &ModelDashboard{
+		potatoes: Potatoes{
+			Choices:  []string{"Buy carrots", "Buy chocolates", "Buy milk", entry[2:]},
+			Selected: make(map[int]struct{}),
+		},
+		keymap: dashboard.ColemakKeyMap,
 		help:   help.New(),
 	}
 }
 
 // Init is the first function that will be called. It returns an optional
 // initial command. To not perform an initial command return nil.
-func (m *model) Init() tea.Cmd {
+func (m *ModelDashboard) Init() tea.Cmd {
 	return nil
 }
 
 // Update is called when a message is received. Use it to inspect messages
 // and, in response, update the model and/or send a command.
-func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *ModelDashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
@@ -78,6 +89,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.potatoes.Selected[m.potatoes.Cursor] = struct{}{}
 			}
 
+		// append
+		case key.Matches(msg, m.keymap.Append):
+			return InitModelAddEntry(), nil
+
 		// help
 		case key.Matches(msg, m.keymap.Help):
 			m.help.ShowAll = !m.help.ShowAll
@@ -89,7 +104,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View renders the program's UI, which is just a string. The view is
 // rendered after every Update.
-func (m *model) View() string {
+func (m *ModelDashboard) View() string {
 	s := "What will we buy?\n\n"
 
 	for i, choice := range m.potatoes.Choices {
@@ -115,7 +130,9 @@ func (m *model) View() string {
 }
 
 func main() {
+	// always enable debug mode for now
 	os.Setenv("HELP_DEBUG", "enable")
+
 	if os.Getenv("HELP_DEBUG") != "" {
 		if f, err := tea.LogToFile("debug.log", "debug"); err != nil {
 			fmt.Println("Couldn't open a file for logging:", err)
@@ -124,7 +141,8 @@ func main() {
 			defer f.Close()
 		}
 	}
-	if err := tea.NewProgram(initModel()).Start(); err != nil {
+
+	if err := tea.NewProgram(initModelDashboard()).Start(); err != nil {
 		fmt.Println("Oooouch, something bad...")
 	}
 }
