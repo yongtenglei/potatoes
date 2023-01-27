@@ -39,6 +39,7 @@ func InitModelAddEntry(t dao.PotatoType) tea.Model {
 	ti.Focus()
 	ti.CharLimit = 156
 	ti.Width = 50
+	ti.PromptStyle = focusedStyle
 
 	return ModelAddEntry{
 		textInput: ti,
@@ -102,7 +103,7 @@ func (m ModelAddEntry) View() string {
 	if m.potatoType == dao.NORMAL {
 		prompt = "The next thing to be done... 🤔"
 	} else if m.potatoType == dao.DAILY {
-		prompt = "Think about \"21-Day Rule\" 🌞"
+		prompt = "Create a daily chore 🌞"
 	}
 
 	s := fmt.Sprintf(
@@ -112,7 +113,7 @@ func (m ModelAddEntry) View() string {
 	) + "\n"
 
 	helpView := m.help.View(m.keymap)
-	height := 8 - strings.Count(s, "\n") - strings.Count(helpView, "\n")
+	height := 5 - strings.Count(s, "\n") - strings.Count(helpView, "\n")
 
 	s += strings.Repeat("\n", height) + helpView
 

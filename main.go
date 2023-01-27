@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"rey.com/charm/potatoes/dao"
 	"rey.com/charm/potatoes/dashboard"
 )
@@ -168,9 +169,17 @@ func (m *ModelDashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the program's UI, which is just a string. The view is
 // rendered after every Update.
 func (m *ModelDashboard) View() string {
-	s := "What will we buy?\n\n"
-	d := strings.Repeat("=", 24) + "daily" + strings.Repeat("=", 24) + "\n"
-	n := strings.Repeat("=", 24) + "normal" + strings.Repeat("=", 23) + "\n"
+	// s := focusedStyle.Render("Welcome to 🥔 Potatoes 🥔 -- A personal flavored TODO Applet\nWhat will we do?\n\n")
+	// s := style.Render("Welcome to 🥔 Potatoes 🥔 -- A personal flavored TODO Applet\nWhat will we do?\n\n")
+
+	// Vertically join two paragraphs along their center axes
+	s := focusedStyle.Render(lipgloss.JoinVertical(lipgloss.Left, "Welcome to 🥔 Potatoes 🥔", strings.Repeat(" ", 15)+"-- A personal flavored TODO Applet", "What will we do?"))
+	// Center a paragraph horizontally in a space 80 cells wide. The height of
+	// the block returned will be as tall as the input paragraph.
+	s = lipgloss.PlaceHorizontal(50, lipgloss.Left, s)
+
+	d := noStyle.Render(lipgloss.PlaceHorizontal(50, lipgloss.Center, "daily", lipgloss.WithWhitespaceChars("="))) + "\n"
+	n := noStyle.Render(lipgloss.PlaceHorizontal(50, lipgloss.Center, "normal", lipgloss.WithWhitespaceChars("="))) + "\n"
 
 	// daily counter / normal counter
 	dc := 0
@@ -179,12 +188,17 @@ func (m *ModelDashboard) View() string {
 	for i, choice := range m.potatoes.Choices {
 		cursor := " "
 		if i == m.potatoes.Cursor {
-			cursor = ">"
+			cursor = focusedStyle.Render(">")
 		}
 
 		checked := " "
 		if _, ok := m.potatoes.Checked[i]; ok {
 			checked = "x"
+
+			if i == m.potatoes.Cursor {
+				checked = focusedStyle.Render("x")
+			}
+
 		}
 
 		if choice.Type == dao.DAILY {
@@ -198,17 +212,16 @@ func (m *ModelDashboard) View() string {
 
 	// extra hint
 	if dc < 1 {
-		d += "No pending daily chores yet, press `A` to add one! 🍰\n"
+		d += titleStyle.Render("\nNo pending daily chores yet, press `A` to add one! 🍰\n")
 	}
 	if nc < 1 {
-		n += "All good, everything is going so well! 🍻\n"
+		n += titleStyle.Render("\nAll good, everything is going so well! 🍻\n")
 	}
 
 	helpView := m.help.View(m.keymap)
-	height := 8 - strings.Count(s, "\n") - strings.Count(helpView, "\n")
+	height := 5 - strings.Count(s, "\n") - strings.Count(helpView, "\n")
 
-	s = s + d + n
-	s += strings.Repeat("\n", height) + helpView
+	s = lipgloss.JoinVertical(lipgloss.Left, s, d, n, strings.Repeat("\n", height)+helpView)
 
 	return s
 }
