@@ -240,7 +240,8 @@ func main() {
 	}
 
 	// connect to SQL
-	dao.InitMySQL()
+	// dao.InitMySQL()
+	dao.InitSQLiet()
 
 	if err := tea.NewProgram(initModelDashboard()).Start(); err != nil {
 		fmt.Println("Oooouch, something bad...")
