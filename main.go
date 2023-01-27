@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"rey.com/charm/potatoes/dao"
 	"rey.com/charm/potatoes/dashboard"
 )
 
@@ -18,16 +20,29 @@ type ModelDashboard struct {
 }
 
 type Potatoes struct {
-	Choices  []string
-	Cursor   int
-	Selected map[int]struct{}
+	Choices []dao.Potato
+	Cursor  int
+	Checked map[int]struct{}
 }
 
 func initModelDashboard() tea.Model {
+	potatoes, err := dao.LoadPotatoes()
+	if err != nil {
+		fmt.Println("Oooouch, something bad...")
+		os.Exit(1)
+	}
+
+	checked := make(map[int]struct{})
+	for i := 0; i < len(potatoes); i++ {
+		if potatoes[i].Checked {
+			checked[i] = struct{}{}
+		}
+	}
+
 	return &ModelDashboard{
 		potatoes: Potatoes{
-			Choices:  []string{"Buy carrots", "Buy chocolates", "Buy milk"},
-			Selected: make(map[int]struct{}),
+			Choices: potatoes,
+			Checked: checked,
 		},
 		keymap: dashboard.ColemakKeyMap,
 		help:   help.New(),
@@ -35,10 +50,27 @@ func initModelDashboard() tea.Model {
 }
 
 func AppendModelDashboard(entry string) tea.Model {
+	if err := dao.AddDailyEntry(entry); err != nil {
+		log.Println(err)
+	}
+
+	potatoes, err := dao.LoadPotatoes()
+	if err != nil {
+		log.Println("Oooouch, something bad...")
+		os.Exit(1)
+	}
+
+	checked := make(map[int]struct{})
+	for i := 0; i < len(potatoes); i++ {
+		if potatoes[i].Checked {
+			checked[i] = struct{}{}
+		}
+	}
+
 	return &ModelDashboard{
 		potatoes: Potatoes{
-			Choices:  []string{"Buy carrots", "Buy chocolates", "Buy milk", entry[2:]},
-			Selected: make(map[int]struct{}),
+			Choices: potatoes,
+			Checked: checked,
 		},
 		keymap: dashboard.ColemakKeyMap,
 		help:   help.New(),
@@ -82,12 +114,15 @@ func (m *ModelDashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// select
 		case key.Matches(msg, m.keymap.Select):
-			_, ok := m.potatoes.Selected[m.potatoes.Cursor]
+			_, ok := m.potatoes.Checked[m.potatoes.Cursor]
 			if ok {
-				delete(m.potatoes.Selected, m.potatoes.Cursor)
+				delete(m.potatoes.Checked, m.potatoes.Cursor)
 			} else {
-				m.potatoes.Selected[m.potatoes.Cursor] = struct{}{}
+				m.potatoes.Checked[m.potatoes.Cursor] = struct{}{}
 			}
+			// PERF: Manipulate database at any interactive point. Could be some kind lazy interaction?
+			// WARN: May caused inconsistency.
+			go dao.ToggleCheck(m.potatoes.Choices[m.potatoes.Cursor].ID)
 
 		// append
 		case key.Matches(msg, m.keymap.Append):
@@ -114,11 +149,11 @@ func (m *ModelDashboard) View() string {
 		}
 
 		checked := " "
-		if _, ok := m.potatoes.Selected[i]; ok {
+		if _, ok := m.potatoes.Checked[i]; ok {
 			checked = "x"
 		}
 
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Entry)
 	}
 
 	helpView := m.help.View(m.keymap)
@@ -141,6 +176,9 @@ func main() {
 			defer f.Close()
 		}
 	}
+
+	// connect to SQL
+	dao.InitMySQL()
 
 	if err := tea.NewProgram(initModelDashboard()).Start(); err != nil {
 		fmt.Println("Oooouch, something bad...")

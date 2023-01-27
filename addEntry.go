@@ -31,7 +31,7 @@ func InitModelAddEntry() tea.Model {
 	ti.Placeholder = "The next thing to be done... 🤔"
 	ti.Focus()
 	ti.CharLimit = 156
-	ti.Width = 20
+	ti.Width = 50
 
 	return ModelAddEntry{
 		textInput: ti,
@@ -65,7 +65,13 @@ func (m ModelAddEntry) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// confirm
 		case key.Matches(msg, m.keymap.Confirm):
-			return AppendModelDashboard(m.textInput.View()), nil
+			input := strings.TrimSpace(m.textInput.Value())
+
+			if len(input) < 1 {
+				return initModelDashboard(), nil
+			}
+
+			return AppendModelDashboard(input), nil
 		}
 
 	// We handle errors just like any other message
