@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	addentry "rey.com/charm/potatoes/addEntry"
+	"rey.com/charm/potatoes/dao"
 )
 
 type (
@@ -24,11 +25,17 @@ type ModelAddEntry struct {
 
 	keymap addentry.KeyMap
 	help   help.Model
+
+	potatoType dao.PotatoType
 }
 
-func InitModelAddEntry() tea.Model {
+func InitModelAddEntry(t dao.PotatoType) tea.Model {
 	ti := textinput.New()
-	ti.Placeholder = "The next thing to be done... 🤔"
+	if t == dao.NORMAL {
+		ti.Placeholder = "The next thing to be done... 🤔"
+	} else if t == dao.DAILY {
+		ti.Placeholder = "Think about \"21-Day Rule\" 🌞"
+	}
 	ti.Focus()
 	ti.CharLimit = 156
 	ti.Width = 50
@@ -39,6 +46,8 @@ func InitModelAddEntry() tea.Model {
 
 		keymap: addentry.DefaultKeyMap,
 		help:   help.New(),
+
+		potatoType: t,
 	}
 }
 
@@ -71,7 +80,11 @@ func (m ModelAddEntry) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return initModelDashboard(), nil
 			}
 
-			return AppendModelDashboard(input), nil
+			if m.potatoType == dao.DAILY {
+				return AppendModelDashboard(input, dao.DAILY), nil
+			} else if m.potatoType == dao.NORMAL {
+				return AppendModelDashboard(input, dao.NORMAL), nil
+			}
 		}
 
 	// We handle errors just like any other message
@@ -85,8 +98,16 @@ func (m ModelAddEntry) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m ModelAddEntry) View() string {
+	var prompt string
+	if m.potatoType == dao.NORMAL {
+		prompt = "The next thing to be done... 🤔"
+	} else if m.potatoType == dao.DAILY {
+		prompt = "Think about \"21-Day Rule\" 🌞"
+	}
+
 	s := fmt.Sprintf(
-		"The next thing to be done... 🤔\n\n%s",
+		"%s\n\n%s",
+		prompt,
 		m.textInput.View(),
 	) + "\n"
 

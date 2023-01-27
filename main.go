@@ -49,8 +49,8 @@ func initModelDashboard() tea.Model {
 	}
 }
 
-func AppendModelDashboard(entry string) tea.Model {
-	if err := dao.AddDailyEntry(entry); err != nil {
+func AppendModelDashboard(entry string, potatoType dao.PotatoType) tea.Model {
+	if err := dao.AddEntry(entry, potatoType); err != nil {
 		log.Println(err)
 	}
 
@@ -100,16 +100,21 @@ func (m *ModelDashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.Quit):
 			return m, tea.Quit
 
+		// cycle cursor (up and down)
 		// up
 		case key.Matches(msg, m.keymap.Up):
 			if m.potatoes.Cursor > 0 {
 				m.potatoes.Cursor--
+			} else {
+				m.potatoes.Cursor = len(m.potatoes.Choices) - 1
 			}
 
 		// down
 		case key.Matches(msg, m.keymap.Down):
 			if m.potatoes.Cursor < len(m.potatoes.Choices)-1 {
 				m.potatoes.Cursor++
+			} else {
+				m.potatoes.Cursor = 0
 			}
 
 		// select
@@ -124,9 +129,13 @@ func (m *ModelDashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// WARN: May caused inconsistency.
 			go dao.ToggleCheck(m.potatoes.Choices[m.potatoes.Cursor].ID)
 
-		// append
+		// append normal
 		case key.Matches(msg, m.keymap.Append):
-			return InitModelAddEntry(), nil
+			return InitModelAddEntry(dao.NORMAL), nil
+
+		// append daily
+		case key.Matches(msg, m.keymap.AppendDaily):
+			return InitModelAddEntry(dao.DAILY), nil
 
 		// help
 		case key.Matches(msg, m.keymap.Help):
@@ -141,6 +150,8 @@ func (m *ModelDashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // rendered after every Update.
 func (m *ModelDashboard) View() string {
 	s := "What will we buy?\n\n"
+	d := strings.Repeat("=", 22) + "daily" + strings.Repeat("=", 22) + "\n"
+	n := strings.Repeat("=", 22) + "normal" + strings.Repeat("=", 21) + "\n"
 
 	for i, choice := range m.potatoes.Choices {
 		cursor := " "
@@ -153,12 +164,17 @@ func (m *ModelDashboard) View() string {
 			checked = "x"
 		}
 
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Entry)
+		if choice.Type == dao.DAILY {
+			d += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Entry)
+		} else if choice.Type == dao.NORMAL {
+			n += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Entry)
+		}
 	}
 
 	helpView := m.help.View(m.keymap)
 	height := 8 - strings.Count(s, "\n") - strings.Count(helpView, "\n")
 
+	s = s + d + n
 	s += strings.Repeat("\n", height) + helpView
 
 	return s

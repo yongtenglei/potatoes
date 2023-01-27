@@ -55,15 +55,15 @@ func InitMySQL() {
 func LoadPotatoes() ([]Potato, error) {
 	var potatoes []Potato
 
-	if err := db.Find(&potatoes).Error; err != nil {
+	if err := db.Order("type desc").Order("id").Find(&potatoes).Error; err != nil {
 		return nil, err
 	}
 
 	return potatoes, nil
 }
 
-func AddDailyEntry(entry string) error {
-	potato := &Potato{Entry: entry, Type: NORMAL}
+func AddEntry(entry string, potatoType PotatoType) error {
+	potato := &Potato{Entry: entry, Type: potatoType}
 
 	if err := db.Create(potato).Error; err != nil {
 		return err
