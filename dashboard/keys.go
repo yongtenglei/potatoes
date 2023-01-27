@@ -14,6 +14,7 @@ type KeyMap struct {
 	Select      key.Binding
 	Append      key.Binding
 	AppendDaily key.Binding
+	Delete      key.Binding
 	Help        key.Binding
 	Quit        key.Binding
 }
@@ -21,7 +22,7 @@ type KeyMap struct {
 // ShortHelp returns keybindings to be shown in the mini help view. It's part
 // of the key.Map interface.
 func (k KeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Append, k.AppendDaily, k.Help, k.Quit}
+	return []key.Binding{k.Append, k.AppendDaily, k.Delete, k.Help, k.Quit}
 }
 
 // FullHelp returns keybindings for the expanded help view. It's part of the
@@ -30,6 +31,7 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.Select},  // first column
 		{k.Append, k.AppendDaily}, // second column
+		{k.Select, k.Delete},      // ...
 		{k.Help, k.Quit},
 	}
 }
@@ -53,7 +55,7 @@ var DefaultKeyMap = KeyMap{
 	//),
 	Select: key.NewBinding(
 		key.WithKeys(" ", "enter"),
-		key.WithHelp("enter", "select a item"),
+		key.WithHelp("enter", "select a entry"),
 	),
 	Append: key.NewBinding(
 		key.WithKeys("a"),
@@ -62,6 +64,10 @@ var DefaultKeyMap = KeyMap{
 	AppendDaily: key.NewBinding(
 		key.WithKeys("A"),
 		key.WithHelp("A", "append a new daily entry"),
+	),
+	Delete: key.NewBinding(
+		key.WithKeys("D"),
+		key.WithHelp("D", "delete a entry"),
 	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),
@@ -101,6 +107,10 @@ var ColemakKeyMap = KeyMap{
 	AppendDaily: key.NewBinding(
 		key.WithKeys("A"),
 		key.WithHelp("A", "append a new daily entry"),
+	),
+	Delete: key.NewBinding(
+		key.WithKeys("D"),
+		key.WithHelp("D", "delete a entry"),
 	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),

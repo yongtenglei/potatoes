@@ -127,7 +127,14 @@ func (m *ModelDashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			// PERF: Manipulate database at any interactive point. Could be some kind lazy interaction?
 			// WARN: May caused inconsistency.
-			go dao.ToggleCheck(m.potatoes.Choices[m.potatoes.Cursor].ID)
+			go func() {
+				defer func() {
+					if err := recover(); err != nil {
+						log.Println("ToggleCheck panicked, may caused by slice index out of bounce (length==1)")
+					}
+				}()
+				dao.ToggleCheck(m.potatoes.Choices[m.potatoes.Cursor].ID)
+			}()
 
 		// append normal
 		case key.Matches(msg, m.keymap.Append):
@@ -136,6 +143,18 @@ func (m *ModelDashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// append daily
 		case key.Matches(msg, m.keymap.AppendDaily):
 			return InitModelAddEntry(dao.DAILY), nil
+
+		// delete
+		case key.Matches(msg, m.keymap.Delete):
+			func() {
+				defer func() {
+					if err := recover(); err != nil {
+						log.Println("DeleteEntry panicked, may caused by slice index out of bounce (length==1)")
+					}
+				}()
+				dao.DeleteEntry(m.potatoes.Choices[m.potatoes.Cursor].ID)
+			}()
+			return initModelDashboard(), nil
 
 		// help
 		case key.Matches(msg, m.keymap.Help):
@@ -150,8 +169,12 @@ func (m *ModelDashboard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // rendered after every Update.
 func (m *ModelDashboard) View() string {
 	s := "What will we buy?\n\n"
-	d := strings.Repeat("=", 22) + "daily" + strings.Repeat("=", 22) + "\n"
-	n := strings.Repeat("=", 22) + "normal" + strings.Repeat("=", 21) + "\n"
+	d := strings.Repeat("=", 24) + "daily" + strings.Repeat("=", 24) + "\n"
+	n := strings.Repeat("=", 24) + "normal" + strings.Repeat("=", 23) + "\n"
+
+	// daily counter / normal counter
+	dc := 0
+	nc := 0
 
 	for i, choice := range m.potatoes.Choices {
 		cursor := " "
@@ -166,9 +189,19 @@ func (m *ModelDashboard) View() string {
 
 		if choice.Type == dao.DAILY {
 			d += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Entry)
+			dc++
 		} else if choice.Type == dao.NORMAL {
 			n += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Entry)
+			nc++
 		}
+	}
+
+	// extra hint
+	if dc < 1 {
+		d += "No pending daily chores yet, press `A` to add one! 🍰\n"
+	}
+	if nc < 1 {
+		n += "All good, everything is going so well! 🍻\n"
 	}
 
 	helpView := m.help.View(m.keymap)

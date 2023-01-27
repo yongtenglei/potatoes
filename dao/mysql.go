@@ -84,3 +84,9 @@ func ToggleCheck(id uint) {
 		log.Println(err)
 	}
 }
+
+func DeleteEntry(id uint) {
+	if err := db.Delete(&Potato{}, id).Error; err != nil {
+		log.Println(err)
+	}
+}
